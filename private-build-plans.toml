@@ -15,7 +15,7 @@ six = "open-contour"
 seven = "straight-serifless"
 eight = "two-circles"
 nine = "open-contour"
-zero = "dotted"
+zero = "slashed"
 capital-a = "straight-serifless"
 capital-b = "standard-serifless"
 capital-c = "bilateral-inward-serifed"
@@ -150,7 +150,7 @@ css = "italic"
 xHeight = 520
 cap = 690
 ascender = 740
-sb = 85 # Perfect
+sb = 85        # Perfect
 
 accentWidth = 182
 accentClearance = 76
@@ -168,4 +168,3 @@ essRatioLower = 1.03
 essRatioQuestion = 1.03
 archDepth = 152
 smallArchDepth = 157
-

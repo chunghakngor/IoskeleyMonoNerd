@@ -1,4 +1,6 @@
-# IoskeleyMono
+# IoskeleyMonoNerd
+
+## Fork of [IoskeleyMono](https://github.com/ahatem/IoskeleyMono)
 
 ![Ioskeley Mono Cover](assets/SocialPreview.png)
 
@@ -51,6 +53,6 @@ For a complete list of all choices made to match Berkeley Mono, see the [`privat
 
 ### License & Credits
 
-**Credits**: Ioskeley Mono is a custom configuration of the Iosevka typeface. All credit for the original design and build system goes to Belleve Invis and the Iosevka contributors.
+**Credits**: Ioskeley Mono is a custom configuration of the Iosevka typeface. All credit for the original design and build system goes to Belleve Invis and the Iosevka contributors and ahatem for the original fork of IoskeleyMono.
 
 Because this is a derivative of Iosevka, it is licensed under the same **SIL Open Font License 1.1**. See the `LICENSE` file for full details.

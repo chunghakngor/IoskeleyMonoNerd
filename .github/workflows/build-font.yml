@@ -59,7 +59,86 @@ jobs:
           fi
           echo "TTF and WOFF2 build directories verified."
 
-      # 8. Create separate ZIP archives for Desktop and Web users
+      # 8. Install FontForge for NerdFont patching
+      - name: Install FontForge
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fontforge python3-fontforge
+
+      # 9. Download and extract Nerd Fonts patcher
+      - name: Download Nerd Fonts patcher
+        run: |
+          # Clone the repo with minimal depth to get FontPatcher.zip
+          git clone --depth 1 https://github.com/ryanoasis/nerd-fonts.git nerd-fonts-temp
+
+          # Extract FontPatcher.zip from the cloned repo
+          unzip nerd-fonts-temp/FontPatcher.zip -d nerd-fonts
+
+          # Clean up temporary clone
+          rm -rf nerd-fonts-temp
+
+          # Verify font-patcher script exists
+          if [ ! -f "nerd-fonts/font-patcher" ]; then
+            echo "font-patcher script not found!"
+            exit 1
+          fi
+
+          echo "Nerd Fonts patcher extracted successfully."
+          ls -lh nerd-fonts/
+
+      # 10. Patch TTF fonts with Nerd Fonts glyphs
+      - name: Patch fonts with Nerd Fonts
+        run: |
+          # Create output directories for patched fonts
+          mkdir -p patched-fonts/Hinted patched-fonts/Unhinted
+
+          # Patch hinted TTF files in parallel
+          echo "Patching hinted fonts..."
+          for ttf_file in iosevka-src/dist/IoskeleyMono/TTF/*.ttf; do
+            echo "Starting patch: $ttf_file"
+            fontforge -script nerd-fonts/font-patcher \
+              --complete \
+              --use-single-width-glyphs \
+              --careful \
+              --quiet \
+              --no-progressbars \
+              --outputdir patched-fonts/Hinted \
+              "$ttf_file" > /dev/null &
+          done
+
+          # Wait for all hinted patches to complete
+          wait
+
+          # Patch unhinted TTF files in parallel
+          echo "Patching unhinted fonts..."
+          for ttf_file in iosevka-src/dist/IoskeleyMono/TTF-Unhinted/*.ttf; do
+            echo "Starting patch: $ttf_file"
+            fontforge -script nerd-fonts/font-patcher \
+              --complete \
+              --use-single-width-glyphs \
+              --careful \
+              --quiet \
+              --no-progressbars \
+              --outputdir patched-fonts/Unhinted \
+              "$ttf_file" > /dev/null &
+          done
+
+          # Wait for all unhinted patches to complete
+          wait
+
+          # Verify patched fonts were created
+          if [ -z "$(ls -A patched-fonts/Hinted)" ] || [ -z "$(ls -A patched-fonts/Unhinted)" ]; then
+            echo "No patched fonts were created!"
+            exit 1
+          fi
+
+          echo "NerdFont patching completed successfully."
+          echo "Hinted NerdFonts:"
+          ls -lh patched-fonts/Hinted/
+          echo "Unhinted NerdFonts:"
+          ls -lh patched-fonts/Unhinted/
+
+      # 11. Create separate ZIP archives for Desktop and Web users
       - name: Package font files into separate archives
         run: |
           # Navigate into the main output directory
@@ -74,12 +153,25 @@ jobs:
           # Package all WOFF2 fonts into the workspace root
           zip -r ../../../IoskeleyMono-Web.zip WOFF2 WOFF2-Unhinted
 
-      # 9. Set the release version number
+          # Return to workspace root and package NerdFont-patched versions
+          cd ../../..
+
+          # Package NerdFont-patched Hinted fonts
+          cd patched-fonts/Hinted
+          zip -r ../../IoskeleyMonoNerd-TTF-Hinted.zip *.ttf
+          cd ../..
+
+          # Package NerdFont-patched Unhinted fonts
+          cd patched-fonts/Unhinted
+          zip -r ../../IoskeleyMonoNerd-TTF-Unhinted.zip *.ttf
+          cd ../..
+
+      # 12. Set the release version number
       - name: Set Release Version
         id: vars
         run: echo "tag=$(date +'%Y.%m.%d')-${{ github.run_number }}" >> $GITHUB_OUTPUT
 
-      # 10. Create a new GitHub Release and upload all three ZIP files
+      # 13. Create a new GitHub Release and upload all font archives
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v1
         with:
@@ -88,9 +180,13 @@ jobs:
           body: |
             Automated build triggered by commit ${{ github.sha }}.
 
-            **For Desktop Users:**
+            **Standard Fonts (Without Nerd Fonts):**
             - `IoskeleyMono-TTF-Hinted.zip`: Fonts with hinting. Best for most users on standard-resolution screens.
             - `IoskeleyMono-TTF-Unhinted.zip`: Raw fonts without hinting. Preferred by some on high-DPI screens.
+
+            **Nerd Fonts (With Programming Icons):**
+            - `IoskeleyMonoNerd-TTF-Hinted.zip`: Hinted fonts patched with Nerd Fonts glyphs for terminal icons and symbols.
+            - `IoskeleyMonoNerd-TTF-Unhinted.zip`: Unhinted fonts patched with Nerd Fonts glyphs.
 
             **For Web Developers:**
             - `IoskeleyMono-Web.zip`: Contains all WOFF2 font files for web use (Hinted and Unhinted).
@@ -98,5 +194,7 @@ jobs:
             IoskeleyMono-TTF-Hinted.zip
             IoskeleyMono-TTF-Unhinted.zip
             IoskeleyMono-Web.zip
+            IoskeleyMonoNerd-TTF-Hinted.zip
+            IoskeleyMonoNerd-TTF-Unhinted.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
